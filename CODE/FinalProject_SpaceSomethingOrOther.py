@@ -15,9 +15,12 @@ Notes:
 #%% IMPORTS ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 if __name__ == "__main__":
     import os
-    os.chdir(r"C:\Users\brook\OneDrive\Documents\GitHub\cmpsML_SpaceSomethingorOther\CODE")
-    #os.chdir(r"C:\Users\melof\OneDrive\Documents\GitHub\cmpsML_SpaceSomethingorOther\CODE")
-
+    #Sets the current Working Directory to be where the file is located
+    filepath = os.path.dirname(os.path.abspath(__file__))
+    os.chdir(filepath)
+    #If there is no input folder, stop the execution and raise an error.
+    if(os.path.exists(filepath+'\\INPUT') == False):
+        raise Exception("An Input Folder does not exist! Create one and add your data.")
 #custom imports
 #other imports
 from copy import deepcopy as dpcpy
@@ -141,7 +144,7 @@ def get_metrics(y_true, y_pred):
             'Accuracy' : accuracy_score(y_true, y_pred), 
             'Specificity' : recall_score(y_true, y_pred, pos_label = 0),
             'AUC' : roc_auc_score(y_true, y_pred)} 
-      
+  
     
 def plotFeatures(features, chLabel):
     plt.figure(figsize=(12,12))
@@ -160,7 +163,7 @@ def plotFeatures(features, chLabel):
 def plot_model_run(y_true, y_pred, additional_plot, chLabel, model_type, figsize = (12,6)):
     model_metrics = get_metrics(y_true, y_pred)
     fig = plt.gcf()
-    ax_0 = fig.add_subplot(1, 3, 2) if additional_plot is not None else fig.add_subplot(1,2,1)#subplots(1,3, figsize = figsize, tight_layout = True)
+    ax_0 = fig.add_subplot(1, 3, 2) if additional_plot is not None else fig.add_subplot(1,2,1)
     ax_1 = fig.add_subplot(1, 3, 3) if additional_plot is not None else fig.add_subplot(1,2,2)
     ax_0.bar(model_metrics.keys(), model_metrics.values())
     ax_0.title.set_text('Performance Measures')
@@ -170,7 +173,6 @@ def plot_model_run(y_true, y_pred, additional_plot, chLabel, model_type, figsize
     
     fig.suptitle(f'{model_type} - {chLabel}')
     return fig
-    
 
 def knn(trainVal, test):
     #Split train/val data
@@ -189,15 +191,12 @@ def knn(trainVal, test):
         accuracy = accuracy_score(val['class'], test_predictions)
         accuracies.append(accuracy)
 
-    #Plot k-value vs accuracy
-    # kvalueplot = plt.axes()
     fig = plt.figure(tight_layout = True)
     kvalueplot = fig.add_subplot(1,3,1)
     kvalueplot.scatter(k_values, accuracies, marker='o')
     kvalueplot.title.set_text('Accuracy vs. k Value')
     kvalueplot.set_xlabel('k Value')
     kvalueplot.set_ylabel('Accuracy')
-    # plt.show
 
     #Get k-value from best model
     best_k = k_values[(accuracies.index(max(accuracies)))]
@@ -267,8 +266,7 @@ def ann(trainVal, test):
     early_stop = EarlyStopping(monitor = 'val_loss', mode = 'min', patience = 20, restore_best_weights = True)
     
     model.compile(optimizer = tf.keras.optimizers.Adam(learning_rate = 1e-4), 
-                  loss = 'sparse_categorical_crossentropy'#tf.nn.sparse_softmax_cross_entropy_with_logits(),
-                  )#metrics= []])
+                  loss = 'sparse_categorical_crossentropy')
     history = model.fit(train.to_numpy(), train_y,
                         batch_size = 4, 
                         epochs = 1000,
@@ -276,7 +274,6 @@ def ann(trainVal, test):
                         callbacks = [reduce_lr, early_stop])
     
     y_pred = np.argmax(np.array(model.predict(test)), axis = -1)
-
 
     loss = history.history['loss']
     val_loss = history.history['val_loss']
@@ -324,8 +321,6 @@ def svm(trainVal, test):
     
     #Run best model against test data
     test_predictions = best_model.predict(test.drop(columns='class'))
-
-    #Get results from test data
  
     return test['class'], test_predictions, None
 
@@ -391,7 +386,6 @@ def main():
     print(chLabel, ':', 'DTree Confusion Matrix\n', confusion_matrix(y_true, y_pred))
 
     #Running ANN model
-    # ann_performance, ann_cMatrix = ann(trainVal_data, test_data)
     y_true, y_pred, ann_plot = ann(trainVal_data, test_data)
     fig = plot_model_run(y_true, y_pred, ann_plot, 'ANN', chLabel)
     plt.show()
